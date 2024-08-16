@@ -30,14 +30,14 @@ set @schema = '<your source schema>';
 set @table = '<your source table>';
 
 -- map a table column with a database role
-mask.set_role('<table column>','<database role>');
+call mask.set_role('<table column>','<database role>');
 ```
 Sample: mask revenue column in view where user does not set role "finance"
 ```
 create role finance;
 set @schema='lakehouse';
 set @table='census';
-mask.set_role('revenue','finance');
+call mask.set_role('revenue','finance');
 ```
 Source code for mask.set_role:
 ```
@@ -63,6 +63,25 @@ set @schema = '<your source schema>';
 set @table = '<your source table>';
 
 -- map a table column with a database role
-mask.set_where('<table column>','<where clause filtering in SQL for the column>');
+call mask.set_where('<table column>','<where clause filtering in SQL for the column>');
 ```
-
+Sample: restrict access to race other than "Other" in the view if user is not "admin"@'%'
+```
+set @schema='lakehouse';
+set @table='census';
+call mask.set_where('race','if(instr(user(),''admin'')>0,race,''Other'')');
+```
+Source code for mask.set_where:
+```
+drop procedure mask.set_where;
+DELIMITER //
+CREATE PROCEDURE mask.set_where (v_column_name char(100), v_expression text)
+BEGIN
+	insert into mask.column_expression (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_expression);
+	insert into mask.column_role (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_role);
+	insert into mask.other_expression (table_schema,table_name) select distinct table_schema, table_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name) not in (select table_schema, table_name from mask.other_expression);
+	update mask.column_expression set expression=v_expression where table_schema=@schema and table_name=@table and column_name=v_column_name;
+END
+//
+DELIMITER ;
+```
