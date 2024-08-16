@@ -85,3 +85,35 @@ END
 //
 DELIMITER ;
 ```
+### Other row access policy
+Other row access policy is a free text to be added into "where" clause of the view
+```
+-- set source schema
+set @schema = '<your source schema>';
+
+-- set source table
+set @table = '<your source table>';
+
+-- set "where" clause condition
+call mask.set_where_others('<where clause filtering in SQL for the column>');
+```
+Sample: restrict apps user to see record with native-country other than "United-States"
+```
+set @schema='lakehouse';
+set @table='census';
+call mask.set_where_others('native_country=if(instr(user(),''apps'')>0,''United-States'',native_country)');
+```
+Source code for mask.set_where_others:
+```
+drop procedure mask.set_where_others;
+DELIMITER //
+CREATE PROCEDURE mask.set_where_others (v_expression text)
+BEGIN
+	insert into mask.column_expression (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_expression);
+	insert into mask.column_role (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_role);
+	insert into mask.other_expression (table_schema,table_name) select distinct table_schema, table_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name) not in (select table_schema, table_name from mask.other_expression);
+	update mask.other_expression set expression=v_expression where table_schema=@schema and table_name=@table;
+END
+//
+DELIMITER ;
+```
