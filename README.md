@@ -20,3 +20,28 @@ create table if not exists mask.column_expression (table_schema char(100), table
 -- mask.other_expression stores free defined where clause / condition to filter data in the table
 create table if not exists mask.other_expression (table_schema char(100), table_name char(100), expression text);
 ```
+### How to set role to a table column
+```
+-- set source schema
+set @schema = '<your source schema>';
+
+-- set source table
+set @table = '<your source table>';
+
+-- map a table column with a database role
+mask.set_role('<table column>','<database role>');
+```
+Source code for mask.set_role:
+```
+drop procedure mask.set_role;
+DELIMITER //
+CREATE PROCEDURE mask.set_role (v_column_name char(100), v_role_name char(100))
+BEGIN
+	insert into mask.column_role (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_role);
+	insert into mask.column_expression (table_schema,table_name, column_name) select table_schema, table_name, column_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name,column_name) not in (select table_schema, table_name, column_name from mask.column_expression);
+	insert into mask.other_expression (table_schema,table_name) select distinct table_schema, table_name from information_schema.columns where table_schema=@schema and table_name=@table and (table_schema,table_name) not in (select table_schema, table_name from mask.other_expression);
+	update mask.column_role set role_name=v_role_name where table_schema=@schema and table_name=@table and column_name=v_column_name;
+END
+//
+DELIMITER ;
+```
