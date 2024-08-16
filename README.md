@@ -117,3 +117,48 @@ END
 //
 DELIMITER ;
 ```
+### Commiting the View
+Set variable @target as target schema where the view will be created
+```
+-- set source schema
+set @schema = '<your source schema>';
+
+-- set source table
+set @table = '<your source table>';
+
+-- set target schema
+set @target = '<target schema>';
+
+-- implement
+call mask.push()
+```
+Sample: creating view apps.census based on lakehouse.census
+```
+set @schema='lakehouse';
+set @table='census';
+set @target='apps';
+call mask.push();
+```
+Source code:
+```
+drop procedure mask.push;
+DELIMITER //
+CREATE PROCEDURE mask.push ()
+BEGIN
+	delete from mask.table_view where source_table=concat(@schema,'.',@table) and target_view=concat(@target,'.',@table);
+	
+	insert into mask.table_view (source_table, target_view, column_definition) select concat(@schema,'.',@table) source_table, concat(@target,'.',@table) target_view,group_concat(if(role_name is not null, concat('if(instr(current_role(),''',role_name,''')>0,',column_name,',mask_inner(cast(',column_name,' as char),1,1)) ',column_name), column_name)) column_list from mask.column_role where table_schema=@schema and table_name=@table group by table_schema, table_name;
+	
+	update mask.table_view set column_expression=(select group_concat(concat(column_name,'=',if(expression is null,column_name,expression)) separator ' and ')  from mask.column_expression a where a.table_schema=@schema and a.table_name=@table) where source_table=concat(@schema,'.',@table) and target_view=concat(@target,'.',@table); 
+
+	set @other=(select if(isnull(expression)>0 or expression='','',concat(' and ',expression)) from mask.other_expression a where a.table_schema=@schema and a.table_name=@table);
+
+	select concat('create or replace view ',@target,'.',@table,' as select ',column_definition,' from ',@schema,'.',@table,' where ', column_expression,@other) from mask.table_view where source_table=concat(@schema,'.',@table) and target_view=concat(@target,'.',@table) into @sql;
+
+	PREPARE stmt FROM @sql;
+    	EXECUTE stmt;
+    	DEALLOCATE PREPARE stmt;
+END
+//
+DELIMITER ;
+```
