@@ -1,6 +1,6 @@
 # Dynamic Data Masking
-This is a sample implementation of MySQL Enterprise Data Masking using custom procedures to distribute data across database schemas, masking sensitive data, and filtering data based on database roles and configurable rules. 
-### Demo: Role based dynamic data masking and access policies to filter data
+This is a sample implementation of MySQL Enterprise Data Masking using custom procedures to distribute data across database schemas, masking sensitive data, and apply rule based row access policy based on database roles and configurable rules. 
+### Demo: Role based dynamic data masking and row access policies to filter data
 
 ### Deploying metadata tables
 Metadata tables are custom tables to store table columns, roles, and access policies.
@@ -32,6 +32,13 @@ set @table = '<your source table>';
 -- map a table column with a database role
 mask.set_role('<table column>','<database role>');
 ```
+Sample: mask revenue column in view where user does not set role "finance"
+```
+create role finance;
+set @schema='lakehouse';
+set @table='census';
+mask.set_role('revenue','finance');
+```
 Source code for mask.set_role:
 ```
 drop procedure mask.set_role;
@@ -46,3 +53,16 @@ END
 //
 DELIMITER ;
 ```
+### Rule based row access policy
+How to implement rule based row access policy
+```
+-- set source schema
+set @schema = '<your source schema>';
+
+-- set source table
+set @table = '<your source table>';
+
+-- map a table column with a database role
+mask.set_where('<table column>','<where clause filtering in SQL for the column>');
+```
+
