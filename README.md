@@ -1,9 +1,9 @@
 # Dynamic Data Masking
 This is a sample implementation of MySQL Enterprise Data Masking using custom procedures to distribute data across database schemas, masking sensitive data, and filtering data based on database roles and configurable rules. 
-### Demo: Role based dynamic data masking and filtering rules
+### Demo: Role based dynamic data masking and access policies to filter data
 
 ### Deploying metadata tables
-Metadata tables are custom tables to 
+Metadata tables are custom tables to store table columns, roles, and access policies.
 ```
 -- metadata database schema is "mask"
 create database if not exists mask;
