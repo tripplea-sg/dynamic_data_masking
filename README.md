@@ -117,6 +117,36 @@ END
 //
 DELIMITER ;
 ```
+### Print
+Print is a command to show masking policy and row access policies
+```
+-- set source schema
+set @schema = '<your source schema>';
+
+-- set source table
+set @table = '<your source table>';
+
+-- print
+call mask.print()
+```
+Sample:
+```
+set @schema='lakehouse';
+set @table='census';
+call mask.print();
+```
+Source code:
+```
+drop procedure mask.print;
+DELIMITER //
+CREATE PROCEDURE mask.print ()
+BEGIN
+	select a.column_name, a.role_name, (select b.expression from mask.column_expression b where b.table_schema=a.table_schema and b.table_name=a.table_name and b.column_name=a.column_name) expression from mask.column_role a where table_schema=@schema and table_name=@table;
+	select a.expression from mask.other_expression a where table_schema=@schema and table_name=@table;
+END
+//
+DELIMITER ;
+```
 ### Commiting the View
 Set variable @target as target schema where the view will be created
 ```
