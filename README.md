@@ -20,7 +20,8 @@ create table if not exists mask.column_expression (table_schema char(100), table
 -- mask.other_expression stores free defined where clause / condition to filter data in the table
 create table if not exists mask.other_expression (table_schema char(100), table_name char(100), expression text);
 ```
-### How to set role to a table column
+### Role based Data Masking
+How to implement role based data masking
 ```
 -- set source schema
 set @schema = '<your source schema>';
