@@ -147,7 +147,7 @@ END
 //
 DELIMITER ;
 ```
-### Commiting the View
+### Flush the policies to target View
 Set variable @target as target schema where the view will be created
 ```
 -- set source schema
@@ -160,20 +160,20 @@ set @table = '<your source table>';
 set @target = '<target schema>';
 
 -- implement
-call mask.push()
+call mask.flush()
 ```
 Sample: creating view apps.census based on lakehouse.census
 ```
 set @schema='lakehouse';
 set @table='census';
 set @target='apps';
-call mask.push();
+call mask.flush();
 ```
 Source code:
 ```
-drop procedure mask.push;
+drop procedure mask.flush;
 DELIMITER //
-CREATE PROCEDURE mask.push ()
+CREATE PROCEDURE mask.flush ()
 BEGIN
 	delete from mask.table_view where source_table=concat(@schema,'.',@table) and target_view=concat(@target,'.',@table);
 	
